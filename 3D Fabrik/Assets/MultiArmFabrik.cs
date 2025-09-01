@@ -9,6 +9,8 @@ public class MultiArmFabrik : MonoBehaviour
     public int segmentCount;
     public float segmentLen;
     public float tolorance;
+    public Vector3 EulerMax;
+    public Vector3 EulerMin;
     public GameObject rootObject;
     public GameObject[] roots;
     public GameObject targetObject;
@@ -58,8 +60,8 @@ public class MultiArmFabrik : MonoBehaviour
         {
             target = (target - root) * (segmentLen * finger1.Length-1);
         }
-        finger1 = forwardReach(finger1, target);
-        finger1 = backwardReach(finger1, root);
+        finger1 = backwardSolve(finger1, target);
+        finger1 = forwardSolve(finger1, root);
 
         root = roots[0].transform.position;
         target = targets[1].transform.position;
@@ -68,8 +70,8 @@ public class MultiArmFabrik : MonoBehaviour
         {
             target = (target - root) * (segmentLen * finger2.Length-1);
         }
-        finger2 = forwardReach(finger2, target);
-        finger2 = backwardReach(finger2, root);
+        finger2 = backwardSolve(finger2, target);
+        finger2 = forwardSolve(finger2, root);
 
         root = roots[0].transform.position;
         target = targets[2].transform.position;
@@ -78,8 +80,8 @@ public class MultiArmFabrik : MonoBehaviour
         {
             target = (target - root) * (segmentLen * finger3.Length-1);
         }
-        finger3 = forwardReach(finger3, target);
-        finger3 = backwardReach(finger3, root);
+        finger3 = backwardSolve(finger3, target);
+        finger3 = forwardSolve(finger3, root);
 
         root = roots[1].transform.position;
         target = targets[3].transform.position;
@@ -88,14 +90,15 @@ public class MultiArmFabrik : MonoBehaviour
         {
             target = (target - root) * (segmentLen * hand.Length);
         }
-        hand = forwardReach(hand, target);
-        hand = backwardReach(hand, root);
+        hand = backwardSolve(hand, target);
+        hand = forwardSolve(hand, root);
 
 
 
 
     }
-    GameObject[] forwardReach(GameObject[] limb, Vector3 target)
+    //Start with end effector move towards root
+    GameObject[] backwardSolve(GameObject[] limb, Vector3 target)
     {
         int n = limb.Length;
         //move end effector to the target
@@ -123,8 +126,9 @@ public class MultiArmFabrik : MonoBehaviour
         return limb;
     }
 
-
-    GameObject[] backwardReach(GameObject[] limb, Vector3 root)
+    //start with root move towards end effector
+    //FIXME; constrain each joint on forward solve
+    GameObject[] forwardSolve(GameObject[] limb, Vector3 root)
     {
         int n = limb.Length;
         limb[0].transform.position = root;
@@ -137,10 +141,11 @@ public class MultiArmFabrik : MonoBehaviour
             Vector3 next = limb[i+1].transform.position;
 
             //get direction from vector facing from next to curr and scale it to segment length
-            Vector3 moveDir = (curr - next).normalized * segmentLen;
-            //shift the position of the joint ahead back by move dir to get the next segment's position
-            moveDir = curr - moveDir;
-            limb[i+1].transform.position = moveDir;
+            Vector3 moveDir = (curr - next).normalized;
+            //constrain the vector from curr to next using curr's rotational limits
+            Vector3 constrainedDir = constrainJoint(limb[i], moveDir, EulerMax, EulerMin);
+
+            limb[i+1].transform.position = curr - (constrainedDir*segmentLen);
 
             //rotate curr to face the repositioned next
             Vector3 faceDir = next - curr;
@@ -148,5 +153,56 @@ public class MultiArmFabrik : MonoBehaviour
 
         }
         return limb;
+    }
+
+    Vector3 constrainJoint(GameObject joint, Vector3 targetMoveDir, Vector3 EulerMax, Vector3 EulerMin)
+    {
+        //return targetMoveDir;
+        // 1. convert targetMoveDir to joint's local space
+        Vector3 localDir = Quaternion.Inverse(joint.transform.rotation) * targetMoveDir;
+
+        // 2. find Quaternion rotation from forward to target
+        Quaternion localRotationToTarget = Quaternion.FromToRotation(Vector3.forward, localDir);
+
+        // 3. convert to euler angles
+        Vector3 rotToTargetEulers = localRotationToTarget.eulerAngles;
+
+        // 4. normalize the eulers (-180 <-> 180)
+        rotToTargetEulers = NormalizeEulerAngles(rotToTargetEulers);
+
+        // 5. Clamp each Euler
+        Vector3 clampedEulers = new Vector3(
+            Mathf.Clamp(rotToTargetEulers.x, EulerMin.x, EulerMax.x),
+            Mathf.Clamp(rotToTargetEulers.y, EulerMin.y, EulerMax.y),
+            Mathf.Clamp(rotToTargetEulers.z, EulerMin.z, EulerMax.z)
+            );
+
+        // 6. reconstruct the Quaternion
+        Quaternion clampedRotation = Quaternion.Euler(clampedEulers);
+
+        // 7. Convert back to Worldspace
+        clampedRotation = clampedRotation * joint.transform.rotation;
+
+        // 8. 
+        Vector3 constrainedDirection = clampedRotation * Vector3.forward;
+
+
+        return constrainedDirection;
+
+    }
+
+    private static Vector3 NormalizeEulerAngles(Vector3 euler)
+    {
+        return new Vector3(
+            NormalizeAngle(euler.x),
+            NormalizeAngle(euler.y),
+            NormalizeAngle(euler.z)
+        );
+    }
+
+    private static float NormalizeAngle(float angle)
+    {
+        angle = Mathf.Repeat(angle + 180f, 360f) - 180f;
+        return angle;
     }
 }
