@@ -18,6 +18,7 @@ public static class QuaternionExtension
         float magnitude = Mathf.Sin(0.5F * angle);
         float sqrMagnitude = magnitude * magnitude;
 
+        //This represents how much rotation is present in the quaternion
         Vector3 vector = new Vector3(quaternion.x, quaternion.y, quaternion.z);
 
         if (vector.sqrMagnitude > sqrMagnitude)

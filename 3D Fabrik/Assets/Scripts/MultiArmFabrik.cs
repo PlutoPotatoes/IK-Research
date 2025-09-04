@@ -139,70 +139,46 @@ public class MultiArmFabrik : MonoBehaviour
             Vector3 curr = limb[i].transform.position;
             //get joint to move position (the joint 1 ahead in the chain)
             Vector3 next = limb[i+1].transform.position;
+            Vector3 initialMoveDir = (curr - next).normalized * segmentLen;
+            Quaternion moveDir = Quaternion.LookRotation(initialMoveDir);
+            if (limb[i].CompareTag("hinge"))
+            {
+                hingeConstraint(moveDir, Vector3.forward, out moveDir);
+            }
+            
 
-            //get direction from vector facing from next to curr and scale it to segment length
-            Vector3 moveDir = (curr - next).normalized;
-            //constrain the vector from curr to next using curr's rotational limits
-            Vector3 constrainedDir = constrainJoint(limb[i], moveDir, EulerMax, EulerMin);
-
-            limb[i+1].transform.position = curr - (constrainedDir*segmentLen);
-
+            Vector3 vectorMoveDir = (moveDir * Vector3.forward).normalized;
+            limb[i+1].transform.position = curr - (vectorMoveDir*segmentLen);
             //rotate curr to face the repositioned next
-            Vector3 faceDir = next - curr;
-            limb[i].transform.rotation = Quaternion.LookRotation(faceDir.normalized);
+            Vector3 faceDir = limb[i+1].transform.position - limb[i].transform.position;
+            limb[i].transform.rotation = Quaternion.LookRotation(faceDir);
 
         }
         return limb;
     }
 
-    Vector3 constrainJoint(GameObject joint, Vector3 targetMoveDir, Vector3 EulerMax, Vector3 EulerMin)
+    //FIXME: make this flatten on the joint's local forward vector not just the Z Axis
+    void hingeConstraint(Quaternion rotation, Vector3 twistAxis, out Quaternion ConstrainedRot)
     {
-        //return targetMoveDir;
-        // 1. convert targetMoveDir to joint's local space
-        Vector3 localDir = Quaternion.Inverse(joint.transform.rotation) * targetMoveDir;
-
-        // 2. find Quaternion rotation from forward to target
-        Quaternion localRotationToTarget = Quaternion.FromToRotation(Vector3.forward, localDir);
-
-        // 3. convert to euler angles
-        Vector3 rotToTargetEulers = localRotationToTarget.eulerAngles;
-
-        // 4. normalize the eulers (-180 <-> 180)
-        rotToTargetEulers = NormalizeEulerAngles(rotToTargetEulers);
-
-        // 5. Clamp each Euler
-        Vector3 clampedEulers = new Vector3(
-            Mathf.Clamp(rotToTargetEulers.x, EulerMin.x, EulerMax.x),
-            Mathf.Clamp(rotToTargetEulers.y, EulerMin.y, EulerMax.y),
-            Mathf.Clamp(rotToTargetEulers.z, EulerMin.z, EulerMax.z)
-            );
-
-        // 6. reconstruct the Quaternion
-        Quaternion clampedRotation = Quaternion.Euler(clampedEulers);
-
-        // 7. Convert back to Worldspace
-        clampedRotation = clampedRotation * joint.transform.rotation;
-
-        // 8. 
-        Vector3 constrainedDirection = clampedRotation * Vector3.forward;
+        ConstrainedRot = rotation;
 
 
-        return constrainedDirection;
+        // Rotate the twist axis by the quaternion to get the actual twisted direction
+        Vector3 rotatedTwist = rotation * twistAxis;
+
+        // Project the rotated vector onto a plane orthogonal to Z (i.e., remove Z component)
+        Vector3 flattened = Vector3.ProjectOnPlane(rotatedTwist, twistAxis).normalized;
+
+        // if the rotation is already on the Z axis return identity
+        if (flattened == Vector3.zero)
+        {
+            return;
+        }
+
+        // Create a new quaternion that aligns the twist axis with the projected vector
+        ConstrainedRot = Quaternion.LookRotation(flattened, twistAxis);
 
     }
 
-    private static Vector3 NormalizeEulerAngles(Vector3 euler)
-    {
-        return new Vector3(
-            NormalizeAngle(euler.x),
-            NormalizeAngle(euler.y),
-            NormalizeAngle(euler.z)
-        );
-    }
 
-    private static float NormalizeAngle(float angle)
-    {
-        angle = Mathf.Repeat(angle + 180f, 360f) - 180f;
-        return angle;
-    }
 }

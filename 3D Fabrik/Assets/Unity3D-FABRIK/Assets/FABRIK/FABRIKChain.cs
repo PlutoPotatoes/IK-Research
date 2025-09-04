@@ -57,21 +57,28 @@ public class FABRIKChain
         {
             Target /= summed_weight;
         }
-
+        //if not already at the target
         if ((EndEffector.Position - Target).sqrMagnitude > sqrThreshold)
         {
             // Set the end effector Position to Target to calculate the Backward iteration
             EndEffector.Position = Target;
-
+            //iterate from the second effector to last backwards
             for (int i = effectors.Count - 2; i >= 0; i--)
             {
+                //get movement direction
                 Vector3 direction = Vector3.Normalize(effectors[i].Position - effectors[i + 1].Position);
-
+                // set position to currPos+direction*LengthOfBone
                 effectors[i].Position = effectors[i + 1].Position + direction * effectors[i].Length;
             }
         }
 
         // Increment parent sub-base's target, to be averaged as above
+        /* setting parent target to where base effector should be because we reset it to the origin
+         * before moving on to other bones
+         * Adding each child's baseEffector Position to the parent target 
+         * and then averaging allows the parent to target the centroid when it's 
+         * backward pass comes
+        */ 
         if (parent != null)
         {
             parent.Target += BaseEffector.Position * EndEffector.Weight;
