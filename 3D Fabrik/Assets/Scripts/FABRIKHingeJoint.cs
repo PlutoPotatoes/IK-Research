@@ -6,9 +6,11 @@ public class FABRIKHingeJoint : FABRIKJoint
     public enum HingeAxis{
         XHinge,
         YHinge,
-        ZHinge
+        ZHinge,
+        CustomHinge
     };
     [SerializeField] HingeAxis hingeAxis;
+    [SerializeField] Vector3 customHingeAxis;
     
 
     public override Quaternion ConstrainRotation(Quaternion startRotation)
@@ -25,6 +27,9 @@ public class FABRIKHingeJoint : FABRIKJoint
                 break;
             case HingeAxis.ZHinge:
                 twistAxis = Vector3.forward;
+                break;
+            case HingeAxis.CustomHinge:
+                twistAxis = customHingeAxis;
                 break;
             default:
                 twistAxis = Vector3.right;

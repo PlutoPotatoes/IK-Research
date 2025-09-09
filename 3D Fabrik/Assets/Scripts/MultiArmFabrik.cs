@@ -9,8 +9,6 @@ public class MultiArmFabrik : MonoBehaviour
     public int segmentCount;
     public float segmentLen;
     public float tolorance;
-    public Vector3 EulerMax;
-    public Vector3 EulerMin;
     public GameObject rootObject;
     public GameObject[] roots;
     public GameObject targetObject;
