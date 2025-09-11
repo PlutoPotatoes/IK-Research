@@ -3524,6 +3524,7 @@ MonoBehaviour:
   LeftFootTarget: {fileID: 1637225340}
   RightHandTarget: {fileID: 1194301643}
   LeftHandTarget: {fileID: 1163740584}
+  HeadTarget: {fileID: 0}
   Root: {fileID: 2023706116}
   leftArm:
   - {fileID: 2023706104}
@@ -3550,12 +3551,13 @@ MonoBehaviour:
   - {fileID: 2023706111}
   - {fileID: 2023706115}
   spine:
+  - {fileID: 2023706116}
   - {fileID: 2023706107}
   - {fileID: 2023706106}
   - {fileID: 2023706105}
   - {fileID: 2023706100}
   upperBodyTriangle:
-  - {fileID: 2023706100}
+  - {fileID: 2023706116}
   - {fileID: 2023706104}
   - {fileID: 2023706098}
   neck:
