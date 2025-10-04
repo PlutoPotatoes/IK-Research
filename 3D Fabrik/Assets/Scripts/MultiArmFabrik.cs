@@ -137,16 +137,20 @@ public class MultiArmFabrik : MonoBehaviour
             Vector3 curr = limb[i].transform.position;
             //get joint to move position (the joint 1 ahead in the chain)
             Vector3 next = limb[i+1].transform.position;
-            Vector3 initialMoveDir = (curr - next).normalized * segmentLen;
-            Quaternion moveDir = Quaternion.LookRotation(initialMoveDir);
-            if (limb[i].CompareTag("hinge"))
-            {
-                hingeConstraint(moveDir, Vector3.forward, out moveDir);
-            }
-            
+            Vector3 moveDir = (curr - next).normalized * segmentLen;
+            moveDir = curr - moveDir;
 
-            Vector3 vectorMoveDir = (moveDir * Vector3.forward).normalized;
-            limb[i+1].transform.position = curr - (vectorMoveDir*segmentLen);
+            //get joint constraints
+            ConstrainedFabrikJoint jointConstraint;
+            limb[i].TryGetComponent<ConstrainedFabrikJoint>(out jointConstraint);
+            if (jointConstraint)
+            {
+                moveDir = jointConstraint.constrain(curr, moveDir);
+            }
+
+
+
+            limb[i + 1].transform.position = moveDir;
             //rotate curr to face the repositioned next
             Vector3 faceDir = limb[i+1].transform.position - limb[i].transform.position;
             limb[i].transform.rotation = Quaternion.LookRotation(faceDir);
@@ -178,5 +182,78 @@ public class MultiArmFabrik : MonoBehaviour
 
     }
 
+
+    private Vector3 constrain(Vector3 L, Vector3 target)
+    {
+        
+        Vector3 O = Vector3.Project(target, L);
+        float dist = (O - L).magnitude;
+        Vector3 T = Vector3.ProjectOnPlane(O, L);
+        T = T - L;
+        // t and line are in line format (m, b)
+        Vector2 t = new Vector2(T.y / T.x, 0);
+        Vector2 line;
+
+
+        //Add each equation/calculate from bounding points and test
+        if (t.x >= 0)
+        {
+            if (t.y >= 0)
+            {
+                //Quadrant 1
+                line = new Vector2();
+            }
+            else
+            {
+                // Quadrant 4
+                line = new Vector2();
+
+            }
+        }
+        else
+        {
+            if (t.y > 0)
+            {
+                //Quadrant 2
+                line = new Vector2();
+
+            }
+            else
+            {
+                // Quadrant 3
+                line = new Vector2();
+
+            }
+        }
+
+        //find the intercept
+        float mdiff = t.x - line.x;
+        float xintercept = 0;
+        float yintercept;
+        if (mdiff != 0)
+        {
+            xintercept = (line.y - t.y) / mdiff;
+        }
+        yintercept = t.x * xintercept + t.y;
+
+        Vector3 constrainedRot = (L + new Vector3(xintercept, yintercept, 0)).normalized;
+        return constrainedRot;
+    }
+
+    private Vector3 tryingAgain(Vector3 L, Vector3 target)
+    {
+        Vector3 O = Vector3.Project(target, L);
+        float dist = (O - L).magnitude;
+        Vector3 OProj = Vector3.ProjectOnPlane(O, Vector3.forward);
+        Vector3 LProj = Vector3.ProjectOnPlane(L, Vector3.forward);
+        print(LProj);
+        OProj -= LProj;
+        Vector3 origin = Vector3.zero;
+
+        //both O and L are projects onto the XY plane, treat L as the origin
+
+
+        return Vector3.right;
+    }
 
 }
