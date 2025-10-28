@@ -1,27 +1,78 @@
 using UnityEngine;
+using System.Collections;
 
 public class FABRIKSolver : MonoBehaviour
 {
-    [SerializeField] GameObject[] limb;
+    [SerializeField] GameObject[] ArmLeft;
+    [SerializeField] GameObject[] ArmRight;
+    [SerializeField] GameObject[] LegLeft;
+    [SerializeField] GameObject[] LegRight;
+    [SerializeField] GameObject[] Torso;
+    [SerializeField] GameObject[] Neck;
+
+
     [SerializeField] GameObject[] Roots;
     [SerializeField] GameObject[] targets;
+    [SerializeField] float tolorance;
+    [SerializeField] int maxIterations;
+
+    private ArrayList limbs;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+        /*
+        limbs.Add(ArmLeft);
+        limbs.Add(ArmRight);
+        limbs.Add(LegLeft);
+        limbs.Add(LegRight);
+        limbs.Add(Neck);
+        limbs.Add(Torso);
+        */
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        FABRIK();
+        solveBody(limbs);
     }
 
-    private void FABRIK()
+    void solveBody(ArrayList limbs)
     {
-        backwardSolve(limb, targets[0].transform.position);
-        forwardSolve(limb, Roots[0].transform.position);
+        FABRIK(ArmLeft, Roots[0].transform.position, targets[0].transform.position);
+        //FABRIK(ArmRight, Roots[0].transform.position, targets[1].transform.position);
+        //FABRIK(LegLeft, Roots[0].transform.position, targets[2].transform.position);
+        //FABRIK(LegRight, Roots[0].transform.position, targets[3].transform.position);
+
+
+
+    }
+
+    private void FABRIK(GameObject[] limb, Vector3 root, Vector3 target)
+    {
+        int i = 0;
+        while (Vector3.Distance(limb[limb.Length - 1].transform.position, target) > tolorance)
+        {
+            if (i < maxIterations)
+            {
+                backwardSolve(limb, target);
+                forwardSolve(limb, root);
+
+            }
+            else
+            {
+                
+                foreach(GameObject joint in limb)
+                {
+                    joint.transform.position = Vector3.zero;   
+                }
+                backwardSolve(limb, target);
+                forwardSolve(limb, root);
+                break;
+            }
+            i++;
+        }
     }
 
     GameObject[] backwardSolve(GameObject[] limb, Vector3 target)

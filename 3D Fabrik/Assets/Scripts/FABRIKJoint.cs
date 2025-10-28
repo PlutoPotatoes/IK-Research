@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 public class FABRIKJoint : MonoBehaviour
 {
-
     public enum ProjectionAxis
     {
         X,
@@ -75,7 +74,7 @@ public class FABRIKJoint : MonoBehaviour
 
         if (!isInBoundsLine1 || !isInBoundsLine2)
         {
-            return line2End;
+            return new Vector3(x4, y4, 0);
         }
 
         return pVector;
