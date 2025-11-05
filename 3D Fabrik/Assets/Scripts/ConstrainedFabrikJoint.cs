@@ -19,6 +19,7 @@ public class ConstrainedFabrikJoint : FABRIKJoint
 
 
 
+
     private int sideMultiplier;
 
 
@@ -58,6 +59,7 @@ public class ConstrainedFabrikJoint : FABRIKJoint
 
     }
 
+    
     private Vector3 ConstrainParentXY(Vector3 L, Vector3 target)
     {
         Quaternion LtoW = Quaternion.FromToRotation(parentJoint.transform.forward, Vector3.forward);
@@ -178,9 +180,9 @@ public class ConstrainedFabrikJoint : FABRIKJoint
 
 
         //draw lines for visual
-        Debug.DrawLine(new Vector3(line.x, 0, 0), new Vector3(0, line.y, 0));
+        /*Debug.DrawLine(new Vector3(line.x, 0, 0), new Vector3(0, line.y, 0));
         Debug.DrawLine(Vector3.zero, OProjZ);
-        Debug.DrawLine(Vector3.zero, newDir, Color.red);
+        Debug.DrawLine(Vector3.zero, newDir, Color.red);*/
 
 
 

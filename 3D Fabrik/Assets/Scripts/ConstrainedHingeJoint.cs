@@ -51,34 +51,28 @@ public class ConstrainedHingeJoint : FABRIKJoint
         //adjust theta from -PI to Pi range to a 0-2PI range
         if (theta < 0)
         {
-            theta = Mathf.Abs(theta + Mathf.PI) + Mathf.PI;
+            theta = theta + (2 * Mathf.PI);
         }
         //create our new position incase we don't need constraints
         Vector3 newPos = new Vector3(0, OProj.y, OProj.z);
 
-        //check if theta is outside our allowed range
-        if (theta < MinAngle * Mathf.Deg2Rad || theta > MaxAngle * Mathf.Deg2Rad)
+        print(theta * Mathf.Rad2Deg);
+        if( !(theta > (MinAngle * Mathf.Deg2Rad) && theta < (MaxAngle * Mathf.Deg2Rad)))
         {
-            //create both constrained max and min positions
-            Vector3 minPos;
-            Vector3 maxPos;
-            minPos.y = Mathf.Sin(MinAngle * Mathf.Deg2Rad);
-            minPos.x = Mathf.Cos(Mathf.Deg2Rad * MinAngle);
-            minPos.z = 0;
-            maxPos.y = Mathf.Sin(MaxAngle * Mathf.Deg2Rad);
-            maxPos.x = Mathf.Cos(Mathf.Deg2Rad * MaxAngle);
-            maxPos.z = 0;
-            //set newPos to the closer constraint position
-            if (Vector3.Distance(minPos, OProj) >= Vector3.Distance(maxPos, OProj))
+            if(theta - MinAngle * Mathf.Deg2Rad >= (MaxAngle * Mathf.Deg2Rad) - theta)
             {
-                newPos = new Vector3(0, minPos.y, minPos.x);
+                theta = MaxAngle * Mathf.Deg2Rad;
             }
             else
             {
-                newPos = new Vector3(0, maxPos.y, maxPos.x);
+                theta = MinAngle * Mathf.Deg2Rad;
             }
+            newPos.z = Mathf.Cos(theta);
+            newPos.y = Mathf.Sin(theta);
+
         }
         //rotate back to parent's local space, normalize, and offset back to joint pos using L
+        print(theta);
         return (Quaternion.Inverse(LtoW) * (newPos)).normalized * segmentLen + L;
     }
 
@@ -104,6 +98,7 @@ public class ConstrainedHingeJoint : FABRIKJoint
         Vector3 newPos = new Vector3(OProj.x, OProj.y, 0);
 
         float adjustedAngle = theta;
+        
         if(theta < MinAngle * Mathf.Deg2Rad || theta > MaxAngle * Mathf.Deg2Rad){
 
             //FIXME find the min arc to both constraining angles and set adjusted angle to the closer one

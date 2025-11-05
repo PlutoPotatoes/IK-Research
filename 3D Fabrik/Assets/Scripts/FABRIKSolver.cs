@@ -7,7 +7,7 @@ public class FABRIKSolver : MonoBehaviour
     [SerializeField] GameObject[] ArmRight;
     [SerializeField] GameObject[] LegLeft;
     [SerializeField] GameObject[] LegRight;
-    [SerializeField] GameObject[] Torso;
+    [SerializeField] GameObject[] Spine;
     [SerializeField] GameObject[] Neck;
 
 
@@ -15,20 +15,14 @@ public class FABRIKSolver : MonoBehaviour
     [SerializeField] GameObject[] targets;
     [SerializeField] float tolorance;
     [SerializeField] int maxIterations;
+    [SerializeField] Vector3 legOffset;
 
     private ArrayList limbs;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        /*
-        limbs.Add(ArmLeft);
-        limbs.Add(ArmRight);
-        limbs.Add(LegLeft);
-        limbs.Add(LegRight);
-        limbs.Add(Neck);
-        limbs.Add(Torso);
-        */
+
 
     }
 
@@ -40,10 +34,13 @@ public class FABRIKSolver : MonoBehaviour
 
     void solveBody(ArrayList limbs)
     {
-        FABRIK(ArmLeft, Roots[0].transform.position, targets[0].transform.position);
-        //FABRIK(ArmRight, Roots[0].transform.position, targets[1].transform.position);
-        //FABRIK(LegLeft, Roots[0].transform.position, targets[2].transform.position);
-        //FABRIK(LegRight, Roots[0].transform.position, targets[3].transform.position);
+        //FABRIK(ArmLeft, Roots[1].transform.position, targets[0].transform.position);
+        //FABRIK(ArmRight, Roots[1].transform.position, targets[1].transform.position);
+        //FABRIK(LegLeft, Roots[0].transform.position-legOffset, targets[2].transform.position);
+        FABRIK(LegRight, Roots[0].transform.position + legOffset, targets[3].transform.position);
+        //FABRIK(Spine, Roots[0].transform.position, targets[4].transform.position);
+        //FABRIK(Neck, Roots[1].transform.position, targets[5].transform.position);
+
 
 
 
@@ -52,8 +49,12 @@ public class FABRIKSolver : MonoBehaviour
     private void FABRIK(GameObject[] limb, Vector3 root, Vector3 target)
     {
         int i = 0;
+        backwardSolve(limb, target);
+        forwardSolve(limb, root);
         while (Vector3.Distance(limb[limb.Length - 1].transform.position, target) > tolorance)
         {
+            backwardSolve(limb, target);
+            forwardSolve(limb, root);
             if (i < maxIterations)
             {
                 backwardSolve(limb, target);
@@ -62,11 +63,11 @@ public class FABRIKSolver : MonoBehaviour
             }
             else
             {
-                
                 foreach(GameObject joint in limb)
                 {
-                    joint.transform.position = Vector3.zero;   
+                    //joint.transform.position = Vector3.zero;   
                 }
+                
                 backwardSolve(limb, target);
                 forwardSolve(limb, root);
                 break;
@@ -124,11 +125,13 @@ public class FABRIKSolver : MonoBehaviour
             moveDir = curr - moveDir;
             //get joint constraints
             moveDir = joint.constrain(curr, moveDir);
-
+            //FIXME: RANDOMLY RETURNS NAN at 0,0
             limb[i + 1].transform.position = moveDir;
             //rotate curr to face the repositioned next
             Vector3 faceDir = limb[i + 1].transform.position - limb[i].transform.position;
+            //Quaternion rot = joint.constrainTwist(Quaternion.LookRotation(faceDir));
             limb[i].transform.rotation = Quaternion.LookRotation(faceDir);
+
 
         }
         return limb;

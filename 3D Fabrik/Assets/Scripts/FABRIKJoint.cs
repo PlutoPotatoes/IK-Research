@@ -16,7 +16,43 @@ public class FABRIKJoint : MonoBehaviour
         both
     };
     [SerializeField] public float segmentLen;
+    [SerializeField] bool twistConstrainedJoint;
+    [SerializeField] float PositiveRotationConstraint;
+    [SerializeField] float NegativeRotationConstraint;
 
+
+
+    public Quaternion constrainTwist(Quaternion rot)
+    {
+        if (twistConstrainedJoint)
+        {
+            //get swing and twist
+            Vector3 twistAxis = this.transform.forward;
+            Quaternion swing;
+            Quaternion twist;
+            rot.decompose(twistAxis, out swing, out twist);
+            //get angle
+            float angle;
+            Vector3 axis;
+            twist.ToAngleAxis(out angle, out axis);
+            //constrain angle
+            if (angle > PositiveRotationConstraint && angle < NegativeRotationConstraint)
+            {
+                if (PositiveRotationConstraint - angle <= NegativeRotationConstraint - angle)
+                {
+                    angle = PositiveRotationConstraint;
+                }
+                else
+                {
+                    angle = NegativeRotationConstraint;
+                }
+            }
+            //constrain twist
+            twist = Quaternion.AngleAxis(angle, axis);
+            return swing * twist;
+        }
+        return rot;
+    }
 
     public virtual Vector3 constrain(Vector3 L, Vector3 target)
     {
