@@ -2,13 +2,19 @@ using UnityEngine;
 
 public class ConstrainedHingeJoint : FABRIKJoint
 {
-
+    private enum hingeType
+    {
+        Leg,
+        Arm
+    }
     [SerializeField] ProjectionAxis axis = ProjectionAxis.X;
     [SerializeField] Sidedness side;
     [SerializeField] GameObject parentJoint;
     [SerializeField] float MinAngle;
     [SerializeField] float MaxAngle;
+    [SerializeField] hingeType limbType;
     private int sideMultiplier = 1;
+
 
 
 
@@ -31,12 +37,21 @@ public class ConstrainedHingeJoint : FABRIKJoint
 
     public override Vector3 constrain(Vector3 L, Vector3 target)
     {
+
         //only really need X constraint for elbows and knees
-        return HingeOnParentX(L, target);
+        if(limbType == hingeType.Arm)
+        {
+            return ArmHingeOnParentX(L, target);
+
+        }
+        else
+        {
+            return LegHingeOnParentX(L, target);
+        }
 
     }
 
-    private Vector3 HingeOnParentX(Vector3 L, Vector3 target)
+    private Vector3 LegHingeOnParentX(Vector3 L, Vector3 target)
     {
         //rotate target from local constrain vector (ex. transform.forward) to worldspace constraint vector
         //then offset so target vector originates from the Origin
@@ -56,8 +71,48 @@ public class ConstrainedHingeJoint : FABRIKJoint
         //create our new position incase we don't need constraints
         Vector3 newPos = new Vector3(0, OProj.y, OProj.z);
 
-        print(theta * Mathf.Rad2Deg);
-        if( !(theta > (MinAngle * Mathf.Deg2Rad) && theta < (MaxAngle * Mathf.Deg2Rad)))
+        if (!(theta > (MinAngle * Mathf.Deg2Rad) || theta < (MaxAngle * Mathf.Deg2Rad)))
+        {
+            if (theta - MinAngle * Mathf.Deg2Rad >= (MaxAngle * Mathf.Deg2Rad) - theta)
+            {
+                theta = MaxAngle * Mathf.Deg2Rad;
+                print("on max");
+            }
+            else
+            {
+                theta = MinAngle * Mathf.Deg2Rad;
+                print("on min");
+            }
+            newPos.z = Mathf.Cos(theta);
+            newPos.y = Mathf.Sin(theta);
+
+        }
+        //rotate back to parent's local space, normalize, and offset back to joint pos using L
+        return (Quaternion.Inverse(LtoW) * (newPos)).normalized * segmentLen + L;
+    }
+
+
+    private Vector3 ArmHingeOnParentX(Vector3 L, Vector3 target)
+    {
+        //rotate target from local constrain vector (ex. transform.forward) to worldspace constraint vector
+        //then offset so target vector originates from the Origin
+        Quaternion LtoW = Quaternion.FromToRotation(parentJoint.transform.right, Vector3.right);
+        target = LtoW * (target - L);
+
+        //Project target onto our constraint plane, normalize, and find theta for constraint
+        Vector3 OProj = Vector3.ProjectOnPlane(target, Vector3.right);
+        OProj = OProj.normalized;
+        float theta = Mathf.Atan2(OProj.y, OProj.z);
+
+        //adjust theta from -PI to Pi range to a 0-2PI range
+        if (theta < 0)
+        {
+            theta = theta + (2 * Mathf.PI);
+        }
+        //create our new position incase we don't need constraints
+        Vector3 newPos = new Vector3(0, OProj.y, OProj.z);
+
+        if( !(theta > (MinAngle * Mathf.Deg2Rad) || theta < (MaxAngle * Mathf.Deg2Rad)))
         {
             if(theta - MinAngle * Mathf.Deg2Rad >= (MaxAngle * Mathf.Deg2Rad) - theta)
             {
@@ -72,7 +127,6 @@ public class ConstrainedHingeJoint : FABRIKJoint
 
         }
         //rotate back to parent's local space, normalize, and offset back to joint pos using L
-        print(theta);
         return (Quaternion.Inverse(LtoW) * (newPos)).normalized * segmentLen + L;
     }
 

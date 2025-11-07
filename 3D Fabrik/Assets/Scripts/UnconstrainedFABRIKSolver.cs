@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class FABRIKSolver : MonoBehaviour
+public class UnconstrainedFABRIKSolver : MonoBehaviour
 {
     [SerializeField] GameObject[] ArmLeft;
     [SerializeField] GameObject[] ArmRight;
@@ -15,7 +15,6 @@ public class FABRIKSolver : MonoBehaviour
     [SerializeField] GameObject[] targets;
     [SerializeField] float tolorance;
     [SerializeField] int maxIterations;
-    [SerializeField] Vector3 legOffset;
 
     private ArrayList limbs;
 
@@ -36,8 +35,8 @@ public class FABRIKSolver : MonoBehaviour
     {
         FABRIK(ArmLeft, Roots[1].transform.position, targets[0].transform.position);
         FABRIK(ArmRight, Roots[1].transform.position, targets[1].transform.position);
-        FABRIK(LegLeft, Roots[0].transform.position-legOffset, targets[2].transform.position);
-        FABRIK(LegRight, Roots[0].transform.position + legOffset, targets[3].transform.position);
+        FABRIK(LegLeft, Roots[0].transform.position, targets[2].transform.position);
+        FABRIK(LegRight, Roots[0].transform.position, targets[3].transform.position);
         FABRIK(Spine, Roots[0].transform.position, targets[4].transform.position);
         FABRIK(Neck, Roots[1].transform.position, targets[5].transform.position);
 
@@ -65,7 +64,7 @@ public class FABRIKSolver : MonoBehaviour
             {
                 foreach(GameObject joint in limb)
                 {
-                    //joint.transform.position = Vector3.zero;   
+                    joint.transform.position = Vector3.zero;   
                 }
                 
                 backwardSolve(limb, target);
@@ -124,7 +123,6 @@ public class FABRIKSolver : MonoBehaviour
             Vector3 moveDir = (curr - next).normalized * joint.segmentLen;
             moveDir = curr - moveDir;
             //get joint constraints
-            moveDir = joint.constrain(curr, moveDir);
             //FIXME: RANDOMLY RETURNS NAN at 0,0
             limb[i + 1].transform.position = moveDir;
             //rotate curr to face the repositioned next

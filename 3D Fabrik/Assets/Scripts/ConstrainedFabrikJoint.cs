@@ -50,7 +50,7 @@ public class ConstrainedFabrikJoint : FABRIKJoint
             case ProjectionAxis.Z:
                 return ConstrainParentXY(L, target);
             case ProjectionAxis.Y:
-                return ConstrainXZ(L, target);
+                return ConstrainParentXZ(L, target);
             case ProjectionAxis.X:
                 return ConstrainParentYZ(L, target);
             default:
@@ -190,13 +190,12 @@ public class ConstrainedFabrikJoint : FABRIKJoint
 
     }
 
-    private Vector3 ConstrainXZ(Vector3 L, Vector3 target)
+    private Vector3 ConstrainParentXZ(Vector3 L, Vector3 target)
     {
-        Vector3 O = Vector3.Project(target, L);
-        float dist = (O - L).magnitude;
+        Quaternion LtoW = Quaternion.FromToRotation(parentJoint.transform.up, Vector3.up);
+        target = LtoW * (target - L);
+
         Vector3 OProjY = Vector3.ProjectOnPlane(target, Vector3.up);
-        Vector3 LProjY = Vector3.ProjectOnPlane(L, Vector3.up);
-        OProjY -= LProjY;
 
 
         Vector2 t = new Vector2(OProjY.x, OProjY.z);
@@ -246,14 +245,9 @@ public class ConstrainedFabrikJoint : FABRIKJoint
         float newY = Mathf.Sqrt(Mathf.Abs(Mathf.Pow(segmentLen, 2) - Mathf.Pow(newDir.x, 2) - Mathf.Pow(newDir.y, 2))) * sideMult;
 
         newDir = new Vector3(newDir.x, newY, newDir.y);
+        newDir = (Quaternion.Inverse(LtoW) * newDir).normalized * segmentLen + L;
 
-        Debug.DrawLine(new Vector3(line.x, 0, 0), new Vector3(0, 0, line.y));
-        Debug.DrawLine(Vector3.zero, OProjY, Color.blue);
-        Debug.DrawLine(Vector3.zero, newDir, Color.red);
-
-        //convert t back to v3 using new Y, add LProj to shift back to the joint position
-
-        return newDir + L;
+        return newDir;
     }
 
 
