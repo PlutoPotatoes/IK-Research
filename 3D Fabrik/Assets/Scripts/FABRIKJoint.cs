@@ -19,6 +19,7 @@ public class FABRIKJoint : MonoBehaviour
     [SerializeField] bool twistConstrainedJoint;
     [SerializeField] float PositiveRotationConstraint;
     [SerializeField] float NegativeRotationConstraint;
+    [SerializeField] public bool isSubBase;
 
 
 

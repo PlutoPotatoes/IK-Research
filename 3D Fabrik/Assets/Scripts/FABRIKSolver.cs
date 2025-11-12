@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections;
+using System.Text;
+using System.IO;
 
 public class FABRIKSolver : MonoBehaviour
 {
@@ -16,13 +18,16 @@ public class FABRIKSolver : MonoBehaviour
     [SerializeField] float tolorance;
     [SerializeField] int maxIterations;
     [SerializeField] Vector3 legOffset;
+    [SerializeField] string datafile;
 
     private ArrayList limbs;
+    private string datapath;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-
+        datapath = "C:/Game Making/IK-Research/test_data/" + datafile + ".csv";
+        createCSV(datapath);
 
     }
 
@@ -30,6 +35,7 @@ public class FABRIKSolver : MonoBehaviour
     void Update()
     {
         solveBody(limbs);
+        gatherData(datapath);
     }
 
     void solveBody(ArrayList limbs)
@@ -80,10 +86,6 @@ public class FABRIKSolver : MonoBehaviour
     {
         int n = limb.Length;
         //move end effector to the target
-        if (target != Vector3.zero)
-        {
-            limb[n - 1].transform.rotation = Quaternion.LookRotation(target);
-        }
 
         limb[n - 1].transform.position = target;
 
@@ -130,10 +132,46 @@ public class FABRIKSolver : MonoBehaviour
             //rotate curr to face the repositioned next
             Vector3 faceDir = limb[i + 1].transform.position - limb[i].transform.position;
             //Quaternion rot = joint.constrainTwist(Quaternion.LookRotation(faceDir));
-            limb[i].transform.rotation = Quaternion.LookRotation(faceDir);
-
+            if (faceDir != Vector3.zero)
+            {
+                if (!joint.isSubBase)
+                {
+                    limb[i].transform.rotation = Quaternion.LookRotation(faceDir);
+                }
+                else
+                {
+                    limb[i].transform.rotation = Quaternion.LookRotation(this.transform.forward);
+                }
+            }
 
         }
         return limb;
     }
+
+    private void createCSV(string filename)
+    {
+        string header = "LeftArmDistance,RightArmDistance,LeftLegDistance,RightLegDistance,ShouldersDistance,HeadDistance";
+        File.WriteAllText(filename, header);
+    }
+
+    private void gatherData(string filename)
+    {
+        //vector3 distance(joint, target) - end effector joint length
+        //track arms targets 0 and 1
+        float LeftArmDistance = Vector3.Distance(ArmLeft[2].transform.position, targets[0].transform.position) - 1;
+        float RightArmDistance = Vector3.Distance(ArmRight[2].transform.position, targets[1].transform.position) - 1;
+        //track legs targets 2 and 3
+        float LeftLegDistance = Vector3.Distance(LegLeft[2].transform.position, targets[2].transform.position) - 1;
+        float RightLegDistance = Vector3.Distance(LegRight[2].transform.position, targets[3].transform.position) - 1;
+        //track shoulders target 4
+        float ShouldersDistance = Vector3.Distance(Spine[3].transform.position, targets[4].transform.position) - 1;
+        //track head target 5
+        float HeadDistance = Vector3.Distance(Neck[2].transform.position, targets[4].transform.position) - 1;
+
+        //format and store in csv?
+
+        string data = "\n" + LeftArmDistance + "," + RightArmDistance + "," + LeftLegDistance + "," + RightLegDistance + "," + ShouldersDistance + "," + HeadDistance;
+        File.AppendAllText(filename, data);
+    }
+
 }
