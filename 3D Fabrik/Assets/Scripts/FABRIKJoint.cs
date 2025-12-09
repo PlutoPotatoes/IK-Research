@@ -20,7 +20,7 @@ public class FABRIKJoint : MonoBehaviour
     [SerializeField] float PositiveRotationConstraint;
     [SerializeField] float NegativeRotationConstraint;
     [SerializeField] public bool isSubBase;
-
+    public Vector3 rotateAxis = Vector3.up;
 
 
     public Quaternion constrainTwist(Quaternion rot)

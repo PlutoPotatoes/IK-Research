@@ -16,6 +16,7 @@ public class ConstrainedFabrikJoint : FABRIKJoint
     [SerializeField] bool isPivot = false;
     [SerializeField] Sidedness side;
     [SerializeField] GameObject parentJoint;
+    
 
 
 
