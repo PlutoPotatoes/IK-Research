@@ -166,7 +166,29 @@ With the skeletal object assembled, each joint must now be categorized and const
 
 
 
+
+
 \section{Discussion}
+
+\subsection{Ethical Considerations}
+
+The ethical considerations of inverse kinematics are as varied as the applications. Procedural animation on its own is not a risk to security, privacy, or personal freedoms but some of its applications can raise concerns in these areas. Animated media is like all other forms of media in that it must be created and maintained responsibly. Providing easily accessible animation tools to developers does create a risk of irresponsible use; however, when considering the wide array of free animation applications available to the average consumer and the limited scope of this research it is clear that this FABRIK skeleton model does not pose any additional ethical risks.
+
+\subsection{Code Overview and Replication Instructions}
+
+The FABRIK skeletal model as well as the building blocks used in its creation are build in Unity 6.0. As such, downloading the game engine and opening the source files as a new project will automatically create all of the dependencies needed to recreate the results from this paper. All of the scripts, object prefabs, and other files utilized in the creation of this process are stored in the Assets folder of the Unity project files. 
+
+Building upon these results for further research or creating a customized skeletal model may take a more in-depth understanding of how this model interfaces Unity's object oriented engine. The experimental model that this paper focuses on uses the FABRIKSolver script to organize and animate the skeleton. Skeletons that use this script or any derivative scripts must start with a empty parent 'body' object. Joint chains are then added as children of the body object such that they use the empty parent as their base world position. This lets the whole skeleton be moved as a single body which is essential if utilizing any form of character movement script. It is also important that the joints are not made children of one another. While this is a common technique for some animation rigs, this solver manipulates all joints in world space independently of their parent objects. Parenting the joints to one another will cause the movement of one joint to move all its children in the same manner. FABRIK builds each limb one joint at a time, so moving unsolved joints through parenting leads to inaccurate solutions. 
+
+The FABRIKSolver script's serialized field variables allow it to store references to each joint's game object in order to manipulate their transforms at runtime. These references are organized into arrays for each limb so each array can be iterated during a forwards and backwards step to solve a single limb at a time. The solving process then runs the FABRIK algorithm on each of these arrays in a set order until a solved position is reached. 
+
+Each joint game object has a FABRIK joint script that holds unique data each joint's bone length, constraint ranges, constraint axis, and a 'sidedness' variable. While most of these fields are self explanatory, sidedness is a bit more complicated. When a constrained joint is projected into 2D and solved it leaves 2 possible values for the 3rd Projected dimension that preserve the joints constant length. Because the constraint process translates the joint in question to the origin of the 2D plane we are also able to assume it is at the origin of the 3rd dimension's axis. As such, one of these values will always be positive and one will always be negative (excluding a zero value). Sidedness collapses this choice and picks either the positive or negative side of the 3rd dimension. This is eliminates positional snapping between the two possibilities and allows mirrored joints like shoulders to be reused on the other side of the body. Constrained joints inherit from a base joint class and override the empty constraint function with their specific algorithm. This structure allows each joint to be edited at runtime allowing the skeleton to be fine tuned with ease. 
+
+All of the scripts that make up this project are built to be flexible building blocks that can be utilized to create any kind of skeleton. By adapting the FABRIKSolver script all joint, constraint, and utility scripts can be recycled to form the animation foundation for a wide variety of projects. 
+
+
+\subsection{Conclusion}
+
 
  While the FABRIK skeleton model wasn't always able to match the motion capture data, the ways in which the model solved the given animations were more often than not still possible human-like pose solutions for the target arrangement. This suggests a need for encoding movement preferences in the algorithm to supplement joint constraints. As an example, most people prefer to keep their elbows facing downwards or outwards and away from the body even though equivalent movements could be enacted with elbows pointed inwards or upwards. \textcite{spore} utilized an artificial tension system to give tendon-like assistance when solving for joint configurations that may be a helpful aid to FABRIK's constraint process. Other methods like preserving minimum angles in limbs may also help in this process but may be more effective if utilized in the manipulation of the targets rather than the solving of the system. 
 
@@ -177,6 +199,9 @@ With the skeletal object assembled, each joint must now be categorized and const
  FABRIK armatures can give creative and functional freedom to small game developers and animation studios that need to expand beyond traditional key frame animation workflows to keep up with time limits and consumer expectations. With further research into constraining methods this implementation could be applied to create a versatile joint tool-set usable in any number of configurations for a wide variety of projects. 
     
 
+
+
+This section will demonstrate that you have thought through the basics of how your code will work. You should include a diagram of the overall data flow of your program, including what the inputs and outputs of each component will be, and how they will be represented.
 
  
 
