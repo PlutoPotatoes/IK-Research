@@ -15,13 +15,73 @@ public class FABRIKJoint : MonoBehaviour
         negative,
         both
     };
+    public enum JointType
+    {
+        UpperLeg,
+        Knee,
+        UpperArm,
+        Elbow,
+        Misc
+    }
     [SerializeField] public float segmentLen;
     [SerializeField] bool twistConstrainedJoint;
     [SerializeField] float PositiveRotationConstraint;
     [SerializeField] float NegativeRotationConstraint;
     [SerializeField] public bool isSubBase;
+    [SerializeField] public JointType jointType;
+    [SerializeField] public GameObject parentJoint;
     public Vector3 rotateAxis = Vector3.up;
 
+
+    public Quaternion constrainRotation(Vector3 faceDir, Transform targetNormal, Vector3 target)
+    {
+        //transform of the GameObject holding the whole model
+        Transform modelTransform = GetComponentInParent<Transform>();
+
+        //default rotation and position
+        Vector3 up = this.transform.up;
+        Quaternion rotation = Quaternion.LookRotation(faceDir, up);
+
+        //rotational offset from world.forward to joint.forward
+        Quaternion forwardShift = Quaternion.FromToRotation(Vector3.forward, faceDir);
+
+        if (isSubBase)
+        {
+            return Quaternion.LookRotation(modelTransform.forward, Vector3.up);
+        }
+
+
+        switch (jointType)
+        {
+            case JointType.UpperLeg:
+                //Shift world.up by rotational offset from world.forward -> joint.foward and use it as the up vector
+                up = forwardShift * Vector3.up;
+                rotation = Quaternion.LookRotation(faceDir, up);
+                break;
+            case JointType.UpperArm:
+                //Shift world.up by rotational offset from world.forward -> joint.foward and use it as the up vector
+                forwardShift = Quaternion.FromToRotation(Vector3.forward, faceDir);
+                up = forwardShift * Vector3.up;
+                rotation = Quaternion.LookRotation(faceDir, up);
+                break;
+            case JointType.Knee:
+                //need to find a way to keep the knee facing forward
+
+                Vector3 h2t = parentJoint.transform.position+target;
+                Vector3 knee_proj = Vector3.Project(transform.position, h2t);
+                rotation = Quaternion.LookRotation(faceDir, knee_proj);
+
+                Debug.DrawLine(transform.position, knee_proj, Color.blue);
+                Debug.DrawLine(parentJoint.transform.position, target, Color.red);
+
+                break;
+            case JointType.Elbow:
+                break;
+        }
+
+        return rotation;
+
+    }
 
     public Quaternion constrainTwist(Quaternion rot)
     {

@@ -15,7 +15,6 @@ public class ConstrainedFabrikJoint : FABRIKJoint
     [SerializeField] ProjectionAxis projectAxis = ProjectionAxis.Z;
     [SerializeField] bool isPivot = false;
     [SerializeField] Sidedness side;
-    [SerializeField] GameObject parentJoint;
     
 
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEditor;
 using System.Collections;
 using System.Text;
 using System.IO;
@@ -25,21 +26,34 @@ public class FABRIKSolver : MonoBehaviour
 
     private string datapath;
     private int frame = 0;
+    private bool forward = false;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         datapath = "C:/Game Making/IK-Research/test_data/" + datafile + ".csv";
         createCSV(datapath);
+        solveBody();
 
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown("space"))
+        {
+            incrementFabrik(ArmLeft, Roots[1].transform.position, targets[0].transform.position, forward);
+            incrementFabrik(ArmRight, Roots[1].transform.position, targets[1].transform.position, forward);
+            incrementFabrik(LegLeft, Roots[0].transform.position - legOffset, targets[2].transform.position, forward);
+            incrementFabrik(LegRight, Roots[0].transform.position + legOffset, targets[3].transform.position, forward);
+            incrementFabrik(Spine, Roots[0].transform.position, targets[4].transform.position, forward);
+            incrementFabrik(Neck, Roots[1].transform.position, targets[5].transform.position, forward);
+            forward = !forward;
+        }
         solveBody();
-        gatherData(datapath);
+        //gatherData(datapath);
     }
+    
 
     void solveBody()
     {
@@ -54,20 +68,33 @@ public class FABRIKSolver : MonoBehaviour
 
 
     }
+    private void incrementFabrik(GameObject[] limb, Vector3 root, Vector3 target, bool forward)
+    {
+        if (forward)
+        {
+            forwardSolve(limb, root, target);
+            print("forward");
+        }
+        else
+        {
+            backwardSolve(limb, target);
+            print("backward");
+        }
+    }
 
     private void FABRIK(GameObject[] limb, Vector3 root, Vector3 target)
     {
         int i = 0;
         backwardSolve(limb, target);
-        forwardSolve(limb, root);
+        forwardSolve(limb, root, target);
         while (Vector3.Distance(limb[limb.Length - 1].transform.position, target) > tolorance)
         {
             backwardSolve(limb, target);
-            forwardSolve(limb, root);
+            forwardSolve(limb, root, target);
             if (i < maxIterations)
             {
                 backwardSolve(limb, target);
-                forwardSolve(limb, root);
+                forwardSolve(limb, root, target);
 
             }
             else
@@ -78,7 +105,7 @@ public class FABRIKSolver : MonoBehaviour
                 }
                 //limb[0].transform.rotation = Quaternion.LookRotation(Vector3.forward + limb[0].transform.position, Vector3.up);
                 backwardSolve(limb, target);
-                forwardSolve(limb, root);
+                forwardSolve(limb, root, target);
                 break;
             }
             i++;
@@ -106,17 +133,24 @@ public class FABRIKSolver : MonoBehaviour
             //shift the position of the joint ahead back by move dir to get the next segment's position
             moveDir = curr - moveDir;
             limb[i].transform.position = moveDir;
+            Vector3 faceDir = limb[i + 1].transform.position - limb[i].transform.position;
+            //limb[i].transform.rotation = Quaternion.LookRotation(faceDir, Vector3.up);
 
+            Debug.DrawLine(limb[i].transform.position, (limb[i].transform.position + limb[i].transform.up), Color.gray, 5f);
+            Debug.DrawLine(limb[i].transform.position, limb[i + 1].transform.position, Color.green, 5f);
         }
+
         return limb;
     }
 
     //start with root move towards end effector
     //FIXME; constrain each joint on forward solve
-    GameObject[] forwardSolve(GameObject[] limb, Vector3 root)
+    GameObject[] forwardSolve(GameObject[] limb, Vector3 root, Vector3 target)
     {
         int n = limb.Length;
         limb[0].transform.position = root;
+        //limb[n - 1].transform.rotation = Quaternion.LookRotation(limb[n-1].transform.position - limb[0].transform.position, Vector3.up);
+
         //FIXME rotate end effector and attached bone
         for (int i = 0; i < n - 1; i++)
         {
@@ -126,27 +160,39 @@ public class FABRIKSolver : MonoBehaviour
             Vector3 next = limb[i + 1].transform.position;
             var joint = limb[i].GetComponent<FABRIKJoint>();
 
+            //Quaternion rot = joint.constrainTwist(Quaternion.LookRotation(faceDir));
+
             Vector3 moveDir = (curr - next).normalized * joint.segmentLen;
             moveDir = curr - moveDir;
+            //This lerp makes it solve much more often but with much less constraint influence
+            //moveDir = Vector3.Lerp(moveDir, next, 0.9f);
+
             //get joint constraints
             moveDir = joint.constrain(curr, moveDir);
-            //FIXME: RANDOMLY RETURNS NAN at 0,0
             limb[i + 1].transform.position = moveDir;
+
+            //FIXME: RANDOMLY RETURNS NAN at 0,0
             //rotate curr to face the repositioned next
             Vector3 faceDir = limb[i + 1].transform.position - limb[i].transform.position;
-            //Quaternion rot = joint.constrainTwist(Quaternion.LookRotation(faceDir));
+
             if (faceDir != Vector3.zero)
             {
-                if (!joint.isSubBase)
-                {
 
-                    limb[i].transform.rotation = Quaternion.LookRotation(faceDir, joint.rotateAxis);
-                }
-                else
-                {
-                    limb[i].transform.rotation = Quaternion.LookRotation(this.transform.forward);
-                }
+                /*
+                 * This is the key to rotational constraints, choosing what up means decides where the model faces
+                 * You'll be right here a lot this semeseter
+                 * 
+                 * TODO
+                 * project limb[i].transform.forward onto a line going straight up from the target
+                 * perpendicular to facedir would be perfect
+                 */
+                limb[i].transform.rotation = joint.constrainRotation(faceDir, limb[n - 1].transform, target);
             }
+
+
+
+            Debug.DrawLine(limb[i].transform.position, (limb[i].transform.position + limb[i].transform.up), Color.white, 5f);
+            Debug.DrawLine(limb[i].transform.position, limb[i+1].transform.position, Color.blue, 5f);
 
         }
         return limb;
