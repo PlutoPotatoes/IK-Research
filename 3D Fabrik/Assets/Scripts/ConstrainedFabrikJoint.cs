@@ -320,7 +320,6 @@ public class ConstrainedFabrikJoint : FABRIKJoint
 
     
     
-    //TODO You are here, fix this shit please
     private Vector3 ConstrainParentYZ(Vector3 L, Vector3 target)
     {
 
@@ -346,6 +345,7 @@ public class ConstrainedFabrikJoint : FABRIKJoint
             {
                 // Quadrant 4
                 line = new Vector2(quadConstraint43.z, quadConstraint43.y);
+
 
 
             }

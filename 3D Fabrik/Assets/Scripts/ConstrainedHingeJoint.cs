@@ -69,16 +69,18 @@ public class ConstrainedHingeJoint : FABRIKJoint
             theta = theta + (2 * Mathf.PI);
         }
         //This part actually works quite well, keeps the knee limited by thigh angle
-        float upperLegAngle = Vector3.Angle(Vector3.down, parentJoint.transform.forward);
-        MaxAngle = 270 + upperLegAngle;
+        float upperLegAngle = -Vector3.SignedAngle(Vector3.down, parentJoint.transform.forward, parentJoint.transform.right);
+        MaxAngle = (270 + upperLegAngle);
         MinAngle = Mathf.Max(90, 90 + upperLegAngle);
         if (offset == 1)
         {
-            print(upperLegAngle);
+            //print(theta * Mathf.Rad2Deg);
         }
         //create our new position incase we don't need constraints
         Vector3 newPos = new Vector3(0, OProj.y, OProj.z);
-        if (theta > (MaxAngle * Mathf.Deg2Rad))
+        //if theta is large enough to be constrained, or small enough to ignore the mininum use max
+        //otherwise use min
+        if (theta > (MaxAngle * Mathf.Deg2Rad) || theta * Mathf.Rad2Deg < 90)
         {
             theta = MaxAngle * Mathf.Deg2Rad;
             newPos.z = Mathf.Cos(theta);
