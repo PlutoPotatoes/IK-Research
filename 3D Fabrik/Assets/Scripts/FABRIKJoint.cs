@@ -15,13 +15,139 @@ public class FABRIKJoint : MonoBehaviour
         negative,
         both
     };
+    public enum JointType
+    {
+        UpperLeg,
+        Knee,
+        UpperArm,
+        Elbow,
+        Misc
+    }
     [SerializeField] public float segmentLen;
     [SerializeField] bool twistConstrainedJoint;
     [SerializeField] float PositiveRotationConstraint;
     [SerializeField] float NegativeRotationConstraint;
     [SerializeField] public bool isSubBase;
+    [SerializeField] public JointType jointType;
+    [SerializeField] public GameObject parentJoint;
     public Vector3 rotateAxis = Vector3.up;
 
+    private Vector3 limb_normal = Vector3.zero;
+
+
+
+    public Quaternion constrainRotation(Vector3 faceDir, Vector3 target)
+    {
+        //transform of the GameObject holding the whole model
+        Transform modelTransform = transform.root;
+
+        //default rotation and position
+        Vector3 up = this.transform.up;
+        Quaternion rotation = Quaternion.LookRotation(faceDir, up);
+
+        //rotational offset from world.forward to joint.forward
+        Quaternion forwardShift = Quaternion.FromToRotation(Vector3.forward, faceDir);
+
+        //cross product solution variables
+
+        Vector3 Target_Vector = transform.position - target;
+        Vector3 Limb_Normal = Vector3.Cross(faceDir, Target_Vector);
+
+        if(limb_normal != Vector3.zero)
+        {
+            Limb_Normal = Vector3.Lerp(limb_normal, Limb_Normal, 0.1f);
+        }
+
+        if (isSubBase)
+        {
+            return Quaternion.LookRotation(modelTransform.forward, modelTransform.up);
+        }
+
+
+        switch (jointType)
+        {
+            case JointType.UpperLeg:
+                //fix this to account for non-origin actors
+                //If target is y-positive relative to joint then z must be negative, else z is positive
+                //accounts for positive side movement in legs
+                up = Vector3.Cross(Limb_Normal, faceDir).normalized;
+                if (gameObject.tag == "print")
+                {
+                    print(transform.up);
+                }
+                if (faceDir.y <= 0){
+                    up = new Vector3(up.x, up.y, Mathf.Abs(up.z));
+                }
+                else
+                {
+                    up = new Vector3(up.x, up.y, -Mathf.Abs(up.z));
+
+                }
+
+
+                //up = Vector3.RotateTowards(forwardShift * modelTransform.up, ideal_up, 45 * Mathf.Deg2Rad, 0);
+
+                up = Vector3.Lerp(transform.up, up, 0.2f);
+                rotation = Quaternion.LookRotation(faceDir, up);
+
+                break;
+            case JointType.UpperArm:
+                //Shift world.up by rotational offset from world.forward -> joint.foward and use it as the up vector
+                up = Vector3.Cross(Limb_Normal, transform.forward);
+                up = Vector3.Lerp(transform.up, up, 0.1f);
+                //up = new Vector3(up.x, up.y, Mathf.Abs(up.z));
+                rotation = Quaternion.LookRotation(faceDir, up);
+                break;
+            case JointType.Knee:
+                /*
+                //first refind our forward shift in the context of our parent joint
+                forwardShift = Quaternion.FromToRotation(parentJoint.transform.forward, faceDir);
+                //apply the shift a base up vector
+                up = forwardShift * Vector3.up;
+                */
+
+                //works well, just need the hip rotational fix in post
+                rotation = Quaternion.LookRotation(faceDir, parentJoint.transform.up);
+
+
+
+                //Debug.DrawLine(transform.position, knee_proj, Color.green);
+                Debug.DrawLine(parentJoint.transform.position, target, Color.red);
+                //Debug.DrawLine(transform.position, start_up + transform.position, Color.green);
+
+
+                break;
+            case JointType.Elbow:
+                rotation = Quaternion.LookRotation(faceDir, parentJoint.transform.up);
+
+                break;
+        }
+
+        return rotation;
+
+    }
+
+    public Quaternion final_rotation_adjustment(Vector3 target, GameObject endEffector, GameObject facingJoint)
+    {
+        //will need to try moving this into the upper leg and arm rot constraints
+        //doesn't do any good here
+        
+
+        Vector3 T_p = Vector3.ProjectOnPlane(target, Vector3.up);
+        Vector3 E_p = Vector3.ProjectOnPlane(endEffector.transform.position, Vector3.up);
+        Vector3 F_p = Vector3.ProjectOnPlane(facingJoint.transform.position, Vector3.up);
+
+        float angle = Vector3.SignedAngle(E_p - F_p, T_p - F_p, Vector3.up);
+        Quaternion rotation = Quaternion.AngleAxis(-angle, Vector3.up);
+
+        Vector3 up = rotation * transform.up;
+        Debug.DrawLine(transform.position, (transform.position + transform.up), Color.green);
+        Debug.DrawLine(transform.position, (transform.position + up), Color.magenta);
+
+        return Quaternion.LookRotation(facingJoint.transform.position, -up);
+
+        
+    }
 
     public Quaternion constrainTwist(Quaternion rot)
     {
@@ -120,9 +246,7 @@ public class FABRIKJoint : MonoBehaviour
     public bool IsIntersectionInBounds(Vector3 lineStart, Vector3 lineEnd, Vector3 intersection)
     {
         float distAC = Vector3.Distance(lineStart, intersection);
-        float distBC = Vector3.Distance(lineEnd, intersection);
         float distAB = Vector3.Distance(lineStart, lineEnd);
-        // Mathf.Abs(distAC + distBC - distAB) > 0.001f
         if (distAB < distAC)
         {
             return false;

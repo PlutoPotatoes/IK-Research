@@ -2,7 +2,6 @@ using UnityEngine;
 
 public class PivotJoint : FABRIKJoint
 {
-    [SerializeField] GameObject parentJoint;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()

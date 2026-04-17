@@ -9,9 +9,9 @@ public class ConstrainedHingeJoint : FABRIKJoint
     }
     [SerializeField] ProjectionAxis axis = ProjectionAxis.X;
     [SerializeField] Sidedness side;
-    [SerializeField] GameObject parentJoint;
     [SerializeField] float MinAngle;
     [SerializeField] float MaxAngle;
+    [SerializeField] float offset = 0;
     [SerializeField] hingeType limbType;
     private int sideMultiplier = 1;
 
@@ -46,9 +46,57 @@ public class ConstrainedHingeJoint : FABRIKJoint
         }
         else
         {
-            return LegHingeOnParentX(L, target);
+            return newLegHinge(L, target);
         }
 
+    }
+
+    private Vector3 newLegHinge(Vector3 L, Vector3 target)
+    {
+        //rotate target from local constrain vector (ex. transform.forward) to worldspace constraint vector
+        //then offset so target vector originates from the Origin
+        Quaternion LtoW = Quaternion.FromToRotation(parentJoint.transform.right, Vector3.right);
+        target = LtoW * (target - L);
+
+        //Project target onto our constraint plane, normalize, and find theta for constraint
+        Vector3 OProj = Vector3.ProjectOnPlane(target, Vector3.right);
+        OProj = OProj.normalized;
+        float theta = Mathf.Atan2(OProj.y, OProj.z);
+
+        //adjust theta from -PI to Pi range to a 0-2PI range
+        if (theta < 0)
+        {
+            theta = theta + (2 * Mathf.PI);
+        }
+        //This part actually works quite well, keeps the knee limited by thigh angle
+        float upperLegAngle = -Vector3.SignedAngle(Vector3.down, parentJoint.transform.forward, parentJoint.transform.right);
+        MaxAngle = (270 + upperLegAngle);
+        MinAngle = Mathf.Max(90, 90 + upperLegAngle);
+        if (offset == 1)
+        {
+            //print(theta * Mathf.Rad2Deg);
+        }
+        //create our new position incase we don't need constraints
+        Vector3 newPos = new Vector3(0, OProj.y, OProj.z);
+        //if theta is large enough to be constrained, or small enough to ignore the mininum use max
+        //otherwise use min
+        if (theta > (MaxAngle * Mathf.Deg2Rad) || theta * Mathf.Rad2Deg < 90)
+        {
+            theta = MaxAngle * Mathf.Deg2Rad;
+            newPos.z = Mathf.Cos(theta);
+            newPos.y = Mathf.Sin(theta);
+        }else if (theta < (MinAngle * Mathf.Deg2Rad))
+        {
+            theta = MinAngle * Mathf.Deg2Rad;
+            newPos.z = Mathf.Cos(theta);
+            newPos.y = Mathf.Sin(theta);
+        }
+        /*
+        newPos.z = Mathf.Cos(MaxAngle * Mathf.Deg2Rad);
+        newPos.y = Mathf.Sin(MaxAngle * Mathf.Deg2Rad);
+        */
+        //rotate back to parent's local space, normalize, and offset back to joint pos using L
+        return (Quaternion.Inverse(LtoW) * (newPos)).normalized * segmentLen + L;
     }
 
     private Vector3 LegHingeOnParentX(Vector3 L, Vector3 target)
@@ -76,17 +124,19 @@ public class ConstrainedHingeJoint : FABRIKJoint
             if (theta - MinAngle * Mathf.Deg2Rad >= (MaxAngle * Mathf.Deg2Rad) - theta)
             {
                 theta = MaxAngle * Mathf.Deg2Rad;
-                print("on max");
             }
             else
             {
                 theta = MinAngle * Mathf.Deg2Rad;
-                print("on min");
             }
             newPos.z = Mathf.Cos(theta);
             newPos.y = Mathf.Sin(theta);
 
         }
+        /*
+        newPos.z = Mathf.Cos(MaxAngle * Mathf.Deg2Rad);
+        newPos.y = Mathf.Sin(MaxAngle * Mathf.Deg2Rad);
+        */
         //rotate back to parent's local space, normalize, and offset back to joint pos using L
         return (Quaternion.Inverse(LtoW) * (newPos)).normalized * segmentLen + L;
     }
