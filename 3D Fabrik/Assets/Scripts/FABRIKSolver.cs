@@ -16,7 +16,6 @@ public class FABRIKSolver : MonoBehaviour
 
     [SerializeField] bool useRotationConstraints;
     [SerializeField] bool usePositionalConstraints;
-    [SerializeField] bool useSolveReset;
     [SerializeField] solvePattern solveType;
     [SerializeField] int delay;
 
@@ -58,7 +57,6 @@ public class FABRIKSolver : MonoBehaviour
 
     private string datapath;
     private int frame = 0;
-    private bool forward = false;
     private int DelayFrame = 0;
 
 
@@ -142,9 +140,6 @@ public class FABRIKSolver : MonoBehaviour
         Reset_FABRIK(ArmRight, ResetTargets[4] + legOffset, ResetTargets[1]);
         Reset_FABRIK(LegLeft, (ResetTargets[7] - legOffset), ResetTargets[2]);
         Reset_FABRIK(LegRight, (ResetTargets[7] + legOffset), ResetTargets[3]);
-        
-
-
 
         GameObject[][] limbs = { Spine, Neck, ArmLeft, ArmRight, LegLeft, LegRight };
         Vector3[][] reset_positions = { SpineResetPosition, NeckResetPosition, ArmLeftResetPosition, ArmRightResetPosition, LegLeftResetPosition, LegRightResetPosition };
@@ -172,7 +167,6 @@ public class FABRIKSolver : MonoBehaviour
         {
             for (int j = 0; j < limbs[i].Length; j++)   
             {
-                //  APPARENTLY FLYING AWAY IS WHAT LETS THE LEGS SOLVE??
                 limbs[i][j].transform.position = reset_positions[i][j] + Roots[0].transform.position;
                 limbs[i][j].transform.rotation = reset_rotations[i][j];
 
@@ -234,7 +228,6 @@ public class FABRIKSolver : MonoBehaviour
 
         limb[n - 1].transform.position = target;
 
-        //FIXME rotate end effector and attached bone
         for (int i = n - 2; i >= 0; i--)
         {
             //get the joint position of the one that just moved
@@ -249,25 +242,21 @@ public class FABRIKSolver : MonoBehaviour
             moveDir = curr - moveDir;
             limb[i].transform.position = moveDir;
             Vector3 faceDir = limb[i + 1].transform.position - limb[i].transform.position;
-            //limb[i].transform.rotation = Quaternion.LookRotation(faceDir, Vector3.up);
 
             Debug.DrawLine(limb[i].transform.position, (limb[i].transform.position + limb[i].transform.up), Color.gray);
-            //below is draw backward pass vectors
-            //Debug.DrawLine(limb[i].transform.position, limb[i + 1].transform.position, Color.green, 5f);
+
         }
 
         return limb;
     }
 
     //start with root move towards end effector
-    //FIXME; constrain each joint on forward solve
     GameObject[] forwardSolve(GameObject[] limb, Vector3 root, Vector3 target)
     {
         int n = limb.Length;
         limb[0].transform.position = root;
         //limb[n - 1].transform.rotation = Quaternion.LookRotation(limb[n-1].transform.position - limb[0].transform.position, Vector3.up);
 
-        //FIXME rotate end effector and attached bone
         for (int i = 0; i < n - 1; i++)
         {
             //get the joint position of the one that just moved
@@ -276,12 +265,8 @@ public class FABRIKSolver : MonoBehaviour
             Vector3 next = limb[i + 1].transform.position;
             var joint = limb[i].GetComponent<FABRIKJoint>();
 
-            //Quaternion rot = joint.constrainTwist(Quaternion.LookRotation(faceDir));
-
             Vector3 moveDir = (curr - next).normalized * joint.segmentLen;
             moveDir = curr - moveDir;
-            //This lerp makes it solve much more often but with much less constraint influence
-            //moveDir = Vector3.Lerp(moveDir, next, 0.9f);
 
             //get joint constraints
             if (usePositionalConstraints)
@@ -291,7 +276,6 @@ public class FABRIKSolver : MonoBehaviour
 
             limb[i + 1].transform.position = moveDir;
 
-            //FIXME: RANDOMLY RETURNS NAN at 0,0
             //rotate curr to face the repositioned next
             Vector3 faceDir = limb[i + 1].transform.position - limb[i].transform.position;
 
@@ -308,8 +292,7 @@ public class FABRIKSolver : MonoBehaviour
 
             Debug.DrawLine(limb[i].transform.position, (limb[i].transform.position + limb[i].transform.up), Color.white);
             Debug.DrawLine(limb[i].transform.up + limb[i].transform.position, limb[i + 1].transform.position);
-            //below is draw forward pass vectors
-            //Debug.DrawLine(limb[i].transform.position, limb[i+1].transform.position, Color.blue, 5f);
+
 
         }
         return limb;

@@ -24,9 +24,6 @@ public class FABRIKJoint : MonoBehaviour
         Misc
     }
     [SerializeField] public float segmentLen;
-    [SerializeField] bool twistConstrainedJoint;
-    [SerializeField] float PositiveRotationConstraint;
-    [SerializeField] float NegativeRotationConstraint;
     [SerializeField] public bool isSubBase;
     [SerializeField] public JointType jointType;
     [SerializeField] public GameObject parentJoint;
@@ -45,11 +42,8 @@ public class FABRIKJoint : MonoBehaviour
         Vector3 up = this.transform.up;
         Quaternion rotation = Quaternion.LookRotation(faceDir, up);
 
-        //rotational offset from world.forward to joint.forward
-        Quaternion forwardShift = Quaternion.FromToRotation(Vector3.forward, faceDir);
 
         //cross product solution variables
-
         Vector3 Target_Vector = transform.position - target;
         Vector3 Limb_Normal = Vector3.Cross(faceDir, Target_Vector);
 
@@ -99,22 +93,7 @@ public class FABRIKJoint : MonoBehaviour
                 rotation = Quaternion.LookRotation(faceDir, up);
                 break;
             case JointType.Knee:
-                /*
-                //first refind our forward shift in the context of our parent joint
-                forwardShift = Quaternion.FromToRotation(parentJoint.transform.forward, faceDir);
-                //apply the shift a base up vector
-                up = forwardShift * Vector3.up;
-                */
-
-                //works well, just need the hip rotational fix in post
                 rotation = Quaternion.LookRotation(faceDir, parentJoint.transform.up);
-
-
-
-                //Debug.DrawLine(transform.position, knee_proj, Color.green);
-                Debug.DrawLine(parentJoint.transform.position, target, Color.red);
-                //Debug.DrawLine(transform.position, start_up + transform.position, Color.green);
-
 
                 break;
             case JointType.Elbow:
@@ -125,60 +104,6 @@ public class FABRIKJoint : MonoBehaviour
 
         return rotation;
 
-    }
-
-    public Quaternion final_rotation_adjustment(Vector3 target, GameObject endEffector, GameObject facingJoint)
-    {
-        //will need to try moving this into the upper leg and arm rot constraints
-        //doesn't do any good here
-        
-
-        Vector3 T_p = Vector3.ProjectOnPlane(target, Vector3.up);
-        Vector3 E_p = Vector3.ProjectOnPlane(endEffector.transform.position, Vector3.up);
-        Vector3 F_p = Vector3.ProjectOnPlane(facingJoint.transform.position, Vector3.up);
-
-        float angle = Vector3.SignedAngle(E_p - F_p, T_p - F_p, Vector3.up);
-        Quaternion rotation = Quaternion.AngleAxis(-angle, Vector3.up);
-
-        Vector3 up = rotation * transform.up;
-        Debug.DrawLine(transform.position, (transform.position + transform.up), Color.green);
-        Debug.DrawLine(transform.position, (transform.position + up), Color.magenta);
-
-        return Quaternion.LookRotation(facingJoint.transform.position, -up);
-
-        
-    }
-
-    public Quaternion constrainTwist(Quaternion rot)
-    {
-        if (twistConstrainedJoint)
-        {
-            //get swing and twist
-            Vector3 twistAxis = this.transform.forward;
-            Quaternion swing;
-            Quaternion twist;
-            rot.decompose(twistAxis, out swing, out twist);
-            //get angle
-            float angle;
-            Vector3 axis;
-            twist.ToAngleAxis(out angle, out axis);
-            //constrain angle
-            if (angle > PositiveRotationConstraint && angle < NegativeRotationConstraint)
-            {
-                if (PositiveRotationConstraint - angle <= NegativeRotationConstraint - angle)
-                {
-                    angle = PositiveRotationConstraint;
-                }
-                else
-                {
-                    angle = NegativeRotationConstraint;
-                }
-            }
-            //constrain twist
-            twist = Quaternion.AngleAxis(angle, axis);
-            return swing * twist;
-        }
-        return rot;
     }
 
     public virtual Vector3 constrain(Vector3 L, Vector3 target)

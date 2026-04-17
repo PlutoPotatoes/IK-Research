@@ -8,32 +8,11 @@ public class ConstrainedHingeJoint : FABRIKJoint
         Arm
     }
     [SerializeField] ProjectionAxis axis = ProjectionAxis.X;
-    [SerializeField] Sidedness side;
     [SerializeField] float MinAngle;
     [SerializeField] float MaxAngle;
     [SerializeField] float offset = 0;
     [SerializeField] hingeType limbType;
-    private int sideMultiplier = 1;
 
-
-
-
-
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        if(side == Sidedness.negative)
-        {
-            sideMultiplier = -1;
-        }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 
     public override Vector3 constrain(Vector3 L, Vector3 target)
     {
@@ -46,12 +25,12 @@ public class ConstrainedHingeJoint : FABRIKJoint
         }
         else
         {
-            return newLegHinge(L, target);
+            return LegHinge(L, target);
         }
 
     }
 
-    private Vector3 newLegHinge(Vector3 L, Vector3 target)
+    private Vector3 LegHinge(Vector3 L, Vector3 target)
     {
         //rotate target from local constrain vector (ex. transform.forward) to worldspace constraint vector
         //then offset so target vector originates from the Origin
@@ -98,49 +77,6 @@ public class ConstrainedHingeJoint : FABRIKJoint
         //rotate back to parent's local space, normalize, and offset back to joint pos using L
         return (Quaternion.Inverse(LtoW) * (newPos)).normalized * segmentLen + L;
     }
-
-    private Vector3 LegHingeOnParentX(Vector3 L, Vector3 target)
-    {
-        //rotate target from local constrain vector (ex. transform.forward) to worldspace constraint vector
-        //then offset so target vector originates from the Origin
-        Quaternion LtoW = Quaternion.FromToRotation(parentJoint.transform.right, Vector3.right);
-        target = LtoW * (target - L);
-
-        //Project target onto our constraint plane, normalize, and find theta for constraint
-        Vector3 OProj = Vector3.ProjectOnPlane(target, Vector3.right);
-        OProj = OProj.normalized;
-        float theta = Mathf.Atan2(OProj.y, OProj.z);
-
-        //adjust theta from -PI to Pi range to a 0-2PI range
-        if (theta < 0)
-        {
-            theta = theta + (2 * Mathf.PI);
-        }
-        //create our new position incase we don't need constraints
-        Vector3 newPos = new Vector3(0, OProj.y, OProj.z);
-
-        if (!(theta > (MinAngle * Mathf.Deg2Rad) || theta < (MaxAngle * Mathf.Deg2Rad)))
-        {
-            if (theta - MinAngle * Mathf.Deg2Rad >= (MaxAngle * Mathf.Deg2Rad) - theta)
-            {
-                theta = MaxAngle * Mathf.Deg2Rad;
-            }
-            else
-            {
-                theta = MinAngle * Mathf.Deg2Rad;
-            }
-            newPos.z = Mathf.Cos(theta);
-            newPos.y = Mathf.Sin(theta);
-
-        }
-        /*
-        newPos.z = Mathf.Cos(MaxAngle * Mathf.Deg2Rad);
-        newPos.y = Mathf.Sin(MaxAngle * Mathf.Deg2Rad);
-        */
-        //rotate back to parent's local space, normalize, and offset back to joint pos using L
-        return (Quaternion.Inverse(LtoW) * (newPos)).normalized * segmentLen + L;
-    }
-
 
     private Vector3 ArmHingeOnParentX(Vector3 L, Vector3 target)
     {
